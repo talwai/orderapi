@@ -1,0 +1,22 @@
+version: '3.1'
+
+services:
+
+  db:
+    image: talwai/orderapi_db
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: password
+    ports:
+      - 5432:5432           
+              
+
+  api:
+    image: talwai/orderapi_api
+    restart: always
+    links:
+      - "db:db"        
+    environment:
+      ORDERS_POSTGRES_HOST: db
+    ports:
+      - 8080:8080

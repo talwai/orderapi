@@ -11,5 +11,10 @@
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
+# vim 
+*.swp
+*.swo
+
 # project
 backend.md
+app
