@@ -54,12 +54,6 @@ func init() {
 // LatLng is a type to capture a latitude, longitude sequnce
 type LatLng []string
 
-// isNumeric returns if a string represents a numeric value
-func isNumeric(s string) bool {
-	_, err := strconv.ParseFloat(s, 64)
-	return err == nil
-}
-
 // validateOrdersListParam validates the `page` and `limit` parameters for GET /orders endpoint
 func validateOrdersListParam(s []string) (int, error) {
 	errorTxt := "badly formatted parameter: page and limit should be positive integers"
@@ -82,7 +76,13 @@ func validateOrdersListParam(s []string) (int, error) {
 // IsValid returns if a LatLng is a valid sequence of numeric latitude and numeric longitude
 func (l LatLng) IsValid() bool {
 	if len(l) == 2 {
-		return isNumeric(l[0]) && isNumeric(l[1])
+		lat, latErr := strconv.ParseFloat(l[0], 64)
+		lng, lngErr := strconv.ParseFloat(l[1], 64)
+
+		// if numeric, check that lat and lng lie within sane bounds
+		if latErr == nil && lngErr == nil {
+			return lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180
+		}
 	}
 
 	return false

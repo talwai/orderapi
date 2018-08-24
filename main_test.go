@@ -28,6 +28,27 @@ func TestLatLngToString(t *testing.T) {
 	assert.Equal("12.9527,77.5848", DestLatLng.String())
 }
 
+func TestLatLngIsValid(t *testing.T) {
+	assert := assert.New(t)
+
+	assert.True(OriginLatLng.IsValid())
+	assert.True(DestLatLng.IsValid())
+
+	badLatLngs := []LatLng{
+		LatLng{"112.9734", "77.5910"},
+		LatLng{"-112.9734", "77.5910"},
+		LatLng{"12.9734", "277.5910"},
+		LatLng{"12.9734", "-277.5910"},
+		LatLng{"112.9734", "277.5910"},
+		LatLng{"-112.9734", "277.5910"},
+		LatLng{"112.9734", "-277.5910"},
+	}
+
+	for _, ll := range badLatLngs {
+		assert.False(ll.IsValid())
+	}
+}
+
 func TestComputeDistance(t *testing.T) {
 	assert := assert.New(t)
 
@@ -119,6 +140,13 @@ func TestCreateOrderInvalidInput(t *testing.T) {
 			[]byte(`{
 			"origin": ["bad_input"],
 			"destination": ["40.7127", "-74.0134"]
+		}`),
+			"origin and destination must be valid lat, lng pairs",
+		},
+		testCase{
+			[]byte(`{
+			"origin": ["bad_input"],
+			"destination": ["-90.7127", "-74.0134"]
 		}`),
 			"origin and destination must be valid lat, lng pairs",
 		},
