@@ -10,7 +10,7 @@ $ ./start.sh
 ```
 
 will set up the API and link it to a Postgres database via `docker-compose`. The API listens on 
-port 8080. 
+port 8080. Please ensure that this port is free on your machine 
 
 ## Database schema
 The database schema used by Postgres is available under `release/db/SCHEMAS.sql`. This schema
