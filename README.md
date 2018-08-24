@@ -47,8 +47,9 @@ The preferred units and format for distance returned by the `POST /order` endpoi
    "status": "UNASSIGN"
 }
 
-There is no strict checking on `origin` and `destination` in the client request, beyond validating
-their types.
+There is strict checking on the latitudes and longitudes submitted in `POST /order`. Latitudes must be numeric, range between -90 and 90. Longitudes must be numeric, range between -180 and 180
+
+Any request not satisyfing the latitude, longitude criteria will be rejected with a 400.
 
 Distance is computed as the Driving distance returned by the Google Maps Distance Matrix API
 
@@ -57,11 +58,11 @@ Distance is computed as the Driving distance returned by the Google Maps Distanc
 Code assumes that there are only two distinct statuses allowed for orders: "UNASSIGN" and "TAKEN". 
 
 PUT /order/:id allows changing status from UNASSIGN -> TAKEN. Changing status from TAKEN -> UNASSIGN
-is not allowed
+is also allowed
 
 Changing any other fields on the order, such as `distance` is not allowed.
 
-No two requests can take the same order. This is enforced using row-level locks in a Postgres transaction. See `database.go:OrderDatabase.TakeOrderIfUnassigned` for details
+No two requests can take the same order. This is enforced using row-level locks in a Postgres transaction. See `database.go:OrderDatabase.UpdateOrderStatus` for details
 
 ## GET/orders?page=:page&limit=:limit
 `limit` specifies the number of records to return in a single request. 

@@ -389,7 +389,7 @@ func updateOrder(w http.ResponseWriter, r *http.Request) {
 
 	// Received an unknown status from the client
 	// Will not allow a status transition
-	if req.Status != OrderStatusTaken {
+	if !(req.Status == OrderStatusTaken || req.Status == OrderStatusUnassign) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
 		resp := errorResponse{
@@ -400,7 +400,7 @@ func updateOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = defaultOrderDatabase.TakeOrderIfUnassigned(orderId)
+	err = defaultOrderDatabase.UpdateOrderStatus(orderId, req.Status)
 
 	if err != nil {
 		switch err {
@@ -414,11 +414,11 @@ func updateOrder(w http.ResponseWriter, r *http.Request) {
 			}
 
 			enc.Encode(resp)
-		case OrderAlreadyTakenError:
+		case OrderAlreadyTakenError, OrderAlreadyUnassignError:
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusConflict)
 			resp := errorResponse{
-				Error: "ORDER_ALREADY_BEEN_TAKEN",
+				Error: err.Error(),
 			}
 
 			enc.Encode(resp)

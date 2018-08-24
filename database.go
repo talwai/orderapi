@@ -13,7 +13,8 @@ import (
 )
 
 var (
-	OrderAlreadyTakenError = errors.New("this order has already been taken")
+	OrderAlreadyTakenError    = errors.New("ORDER_ALREADY_BEEN_TAKEN")
+	OrderAlreadyUnassignError = errors.New("ORDER_ALREADY_UNASSIGN")
 )
 
 // OrderDatabase provides a wrapper around a database/sql connection
@@ -68,11 +69,10 @@ func (od *OrderDatabase) InsertOrder(
 	return
 }
 
-// timeout in milliseconds for the TakeOrderIfUnassigned transaction
+// timeout in milliseconds for the UpdateOrderStatus transaction
 const ctxTimeoutMs = 2000
 
-// TakeOrderIfUnassigned updates an order's status from UNASSIGN -> taken
-// provided that the order has not been `taken` by a previous operation
+// UpdateOrderStatus updates an order's status from UNASSIGN -> taken, or vice versa
 
 // It initiates a transaction and acquires a row-level lock for the order
 // being updated
@@ -80,12 +80,12 @@ const ctxTimeoutMs = 2000
 // A configurable timeout of 2 seconds is enforced via context.Context to ensure that
 // a transaction does not hold a lock for too long. If the context expires, the
 // transaction is rolled back
-func (od *OrderDatabase) TakeOrderIfUnassigned(orderId int) (err error) {
+func (od *OrderDatabase) UpdateOrderStatus(orderId int, newStatus string) (err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), ctxTimeoutMs*time.Millisecond)
 	defer cancel()
 
 	// Use a Postgres transaction to lock an Order row for update
-	// If two requests try to take the same order, first one to lock the row wins
+	// If two requests try to update the same order, first one to lock the row wins
 	tx, err := od.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -110,14 +110,18 @@ func (od *OrderDatabase) TakeOrderIfUnassigned(orderId int) (err error) {
 	}
 
 	// if we encounter a `taken` order, it must have been updated by an earlier transaction
-	if status == OrderStatusTaken {
-		return OrderAlreadyTakenError
+	if status == newStatus {
+		if newStatus == OrderStatusTaken {
+			return OrderAlreadyTakenError
+		} else if newStatus == OrderStatusUnassign {
+			return OrderAlreadyUnassignError
+		}
 	}
 
 	// ensure that we only allow UNASSSIGN -> taken transition
 	row := tx.QueryRow(
 		`UPDATE orders SET status = $1 WHERE id = $2 and status = $3 RETURNING id, status`,
-		OrderStatusTaken, orderId, OrderStatusUnassign,
+		newStatus, orderId, status,
 	)
 
 	var updatedStatus string

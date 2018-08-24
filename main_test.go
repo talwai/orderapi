@@ -201,27 +201,56 @@ func TestUpdateOrderValidInput(t *testing.T) {
 		OriginLatLng.String(), DestLatLng.String(), OrderStatusUnassign, 1000,
 	)
 
+	// take the order
 	r := Router()
 	srv := httptest.NewServer(r)
 	client := srv.Client()
 	orderEndpoint := fmt.Sprintf("%s/%s/%d", srv.URL, "order", id)
 
-	putData := []byte(`{"status": "taken"}`)
+	// UNASSIGNing it should cause a conflict
+	putData := []byte(`{"status": "UNASSIGN"}`)
 	req, _ := http.NewRequest(http.MethodPut, orderEndpoint, bytes.NewReader(putData))
 
 	resp, _ := client.Do(req)
-	assert.Equal(http.StatusOK, resp.StatusCode)
+	assert.Equal(http.StatusConflict, resp.StatusCode)
 	assert.Equal("application/json", resp.Header.Get("Content-Type"))
 	respBody, _ := ioutil.ReadAll(resp.Body)
+	assert.Equal("{\"error\":\"ORDER_ALREADY_UNASSIGN\"}\n", string(respBody))
+
+	// take the order
+	putData = []byte(`{"status": "taken"}`)
+	req, _ = http.NewRequest(http.MethodPut, orderEndpoint, bytes.NewReader(putData))
+
+	resp, _ = client.Do(req)
+	assert.Equal(http.StatusOK, resp.StatusCode)
+	assert.Equal("application/json", resp.Header.Get("Content-Type"))
+	respBody, _ = ioutil.ReadAll(resp.Body)
 	assert.Equal("{\"status\":\"SUCCESS\"}\n", string(respBody))
 
-	// redoing the PUT request should cause a 409 Conflict response
+	// taking it again should cause a 409 Conflict response
 	req, _ = http.NewRequest(http.MethodPut, orderEndpoint, bytes.NewReader(putData))
 	resp, _ = client.Do(req)
 	assert.Equal(http.StatusConflict, resp.StatusCode)
 	assert.Equal("application/json", resp.Header.Get("Content-Type"))
 	respBody, _ = ioutil.ReadAll(resp.Body)
 	assert.Equal("{\"error\":\"ORDER_ALREADY_BEEN_TAKEN\"}\n", string(respBody))
+
+	// unassign the order
+	putData = []byte(`{"status": "UNASSIGN"}`)
+	req, _ = http.NewRequest(http.MethodPut, orderEndpoint, bytes.NewReader(putData))
+	resp, _ = client.Do(req)
+	assert.Equal(http.StatusOK, resp.StatusCode)
+	assert.Equal("application/json", resp.Header.Get("Content-Type"))
+	respBody, _ = ioutil.ReadAll(resp.Body)
+	assert.Equal("{\"status\":\"SUCCESS\"}\n", string(respBody))
+
+	// second UNASSIGN should cause a conflict
+	req, _ = http.NewRequest(http.MethodPut, orderEndpoint, bytes.NewReader(putData))
+	resp, _ = client.Do(req)
+	assert.Equal(http.StatusConflict, resp.StatusCode)
+	assert.Equal("application/json", resp.Header.Get("Content-Type"))
+	respBody, _ = ioutil.ReadAll(resp.Body)
+	assert.Equal("{\"error\":\"ORDER_ALREADY_UNASSIGN\"}\n", string(respBody))
 }
 
 func TestUpdateOrderInvalidInput(t *testing.T) {
