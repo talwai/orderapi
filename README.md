@@ -35,6 +35,8 @@ $ docker build --tag talwai/orderapi_db release/db
 
 ## Testing
 ```bash
+# first clone the repo into a valid directory for dep e.g. $GOPATH/src/github.com/talwai/orderapi
+$ dep ensure
 $ go test .
 ```
 
