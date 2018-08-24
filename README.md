@@ -17,6 +17,14 @@ The database schema used by Postgres is available under `release/db/SCHEMAS.sql`
 is embedded into the Docker image used by `docker-compose`
 
 ## Building
+
+### Dev build
+```bash
+$ docker build .
+```
+
+### Release build
+
 Dockerfiles for `api` and `db` are available under `release`
 
 The Docker images were built with:
